@@ -1,0 +1,8 @@
+package:
+    type:           project
+    name:           hiapi-fetchmail
+    title:          hiAPI Fetchmail plugin
+    headline:       hiAPI Fetchmail
+    keywords:       hiapi, fetchmail
+    description:    |
+        POP3 mail fetching plugin for hiAPI
