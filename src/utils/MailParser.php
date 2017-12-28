@@ -11,7 +11,8 @@
 namespace hiapi\fetchmail\utils;
 
 use \ZBateson\MailMimeParser\MailMimeParser;
-use \EmailReplyParser\Parser\EmailReplyParser;
+use \ZBateson\MailMimeParser\Message;
+use \EmailReplyParser\EmailReplyParser;
 
 /**
  * @author Yurii Myronchuk <bladeroot@gmail.com>
@@ -23,12 +24,12 @@ class MailParser
         $this->mailParser = new MailMimeParser();
     }
 
-    public function parseMail(string $rawEmailString) : MailMimeParser
+    public function parseMail(string $rawEmailString) : array
     {
-        return $this->mailParser->parse($rawEmailString);
+        return $this->parseMessage($this->mailParser->parse($rawEmailString));
     }
 
-    public function parseMessage(MailMimeParser $message) : array
+    public function parseMessage(Message $message) : array
     {
         return [
             'from_email' => $this->getFromEmail($message),
@@ -39,43 +40,51 @@ class MailParser
         ];
     }
 
-    public function getFromEmail(MailMimeParser $message) : string
+    public function getFromEmail(Message $message) : string
     {
         return $message->getHeaderValue('from');
     }
 
-    public function getFromName(MailMimeParser $message) : string
+    public function getFromName(Message $message) : string
     {
         return $message->getHeader('from')->getPersonName();
     }
 
-    public function getSubject(MailMimeParser $message) : string
+    public function getSubject(Message $message) : string
     {
         return $message->getHeaderValue('subject');
     }
 
-    public function getContentType(MailMimeParser $message) : string
+    public function getContentType(Message $message) : string
     {
         return $message->getHeader('Content-Type');
     }
 
-    public function getCharset(MailMimeParser $message) : string
+    public function getCharset(Message $message) : string
     {
          return strtoupper($message->getHeaderParameter('Content-Type', 'charset', 'utf-8'));
     }
 
-    public function getMessage(MailMimeParser $message) : string
+    public function getMessage(Message $message) : string
     {
         $encoding = $this->getCharset($message);
-        $rawText = $message->getTextPart() ? : $message->getHtmlPart();
+        $rawText = $message->getTextContent() ? : $message->getHtmlContent();
         $text = $encoding === 'UTF-8' ? $rawText : mb_convert_encoding($rawText, 'UTF-8', $encoding);
         return EmailReplyParser::parseReply($text);
 
     }
 
-    public function getAttachments(MailMimeParser $message) : array
+    public function getAttachments(Message $message) : array
     {
-        return [];
-    }
+        if ($message->getAttachmentCount() === 0) {
+            return [];
+        }
 
+        $messageAttachments = [];
+        foreach ($message->getAllAttachmentParts() as $attachment) {
+
+        }
+
+        return $messageAttachments;
+    }
 }

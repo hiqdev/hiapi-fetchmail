@@ -44,7 +44,8 @@
     "require": {
         "eden/mail": "*",
         "zbateson/mail-mime-parser": "*",
-        "willdurand/email-reply-parser": "^2.7"
+        "willdurand/email-reply-parser": "^2.7",
+        "soundasleep/html2text": "~0.5"
     },
     "require-dev": {
         "hiqdev/hidev-php": "<2.0",
