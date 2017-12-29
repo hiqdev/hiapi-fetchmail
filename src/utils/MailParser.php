@@ -13,6 +13,7 @@ namespace hiapi\fetchmail\utils;
 use \ZBateson\MailMimeParser\MailMimeParser;
 use \ZBateson\MailMimeParser\Message;
 use \EmailReplyParser\EmailReplyParser;
+use \Html2Text\Html2Text;
 
 /**
  * @author Yurii Myronchuk <bladeroot@gmail.com>
@@ -68,7 +69,7 @@ class MailParser
     public function getMessage(Message $message) : string
     {
         $encoding = $this->getCharset($message);
-        $rawText = $message->getTextContent() ? : $message->getHtmlContent();
+        $rawText = $message->getTextContent() ? : Html2Text::convert($message->getHtmlContent());
         $text = $encoding === 'UTF-8' ? $rawText : mb_convert_encoding($rawText, 'UTF-8', $encoding);
         return EmailReplyParser::parseReply($text);
 
@@ -76,15 +77,28 @@ class MailParser
 
     public function getAttachments(Message $message) : array
     {
+        $attachments = [];
         if ($message->getAttachmentCount() === 0) {
-            return [];
+            return $attachments;
         }
 
-        $messageAttachments = [];
-        foreach ($message->getAllAttachmentParts() as $attachment) {
 
+        foreach ($message->getAllAttachmentParts() as $att) {
+            if (($file = @tempnam(sys_get_temp_dir(), 'thread_attach')) === false) {
+                continue;
+            }
+
+            $handle = fopen($file, "w");
+            fwrite($handle, stream_get_contents($att->getContentResourceHandle()));
+            fclose($handle);
+
+            $attachments[] = [
+                'content-type' => $att->getHeaderValue('Content-Type'),
+                'filename' => $att->getHeaderParameter('content-type', 'name'),
+                'filepath' => $file,
+            ];
         }
 
-        return $messageAttachments;
+        return $attachments;
     }
 }
