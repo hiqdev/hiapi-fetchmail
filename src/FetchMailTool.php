@@ -52,7 +52,6 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
     public function mailsFetch($params = [])
     {
-
         $emails = $this->mailsGetAll();
         if (empty($emails)) {
             return true;
@@ -64,8 +63,10 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
         foreach ($emails as $id => $email) {
             $parsedEmails[] = $this->parser->parseMail($email['raw']);
-            $this->pop3->remove($id + 1);
+            $remove[] = $id + 1;
         }
+
+        $this->pop3->remove($remove);
 
         return $parsedEmails;
     }
