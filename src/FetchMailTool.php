@@ -11,7 +11,7 @@
 namespace hiapi\fetchmail;
 
 use \hiapi\fetchmail\utils\MailParser;
-use \Eden\Mail\Pop3;
+use \Bladeroot\Mail\Pop3;
 
 /**
  * hiAPI FetchMail Tool.
@@ -22,6 +22,8 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 {
     protected $pop3;
     protected $parser;
+
+    protected $messageToDelete = [];
 
     public function __construct($base, $data = [])
     {
@@ -45,6 +47,9 @@ class FetchMailTool extends \hiapi\components\AbstractTool
     public function __destruct()
     {
         if ($this->pop3 !== null) {
+            if (!empty($this->messageToDelete)) {
+                $this->pop3->remove($this->messageToDelete);
+            }
             $this->pop3->disconnect();
             unset($this->pop3);
         }
@@ -57,17 +62,12 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             return true;
         }
 
-        if ($this->data['internal_parser']) {
-            return $emails;
-        }
-
         foreach ($emails as $id => $email) {
-            $parsedEmails[] = $this->parser->parseMail($email['raw']);
-            $remove[] = $id + 1;
+            $remove[] = $id;
+            $parsedEmails[] = $this->parser->parseMail($email);
         }
 
-        $this->pop3->remove($remove);
-
+        $this->messageToDelete = $remove;
         return $parsedEmails;
     }
 
