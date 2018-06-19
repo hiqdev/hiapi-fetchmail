@@ -46,6 +46,11 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
     public function __destruct()
     {
+        $this->diconnect();
+    }
+
+    public function disconnect()
+    {
         if ($this->pop3 !== null) {
             if (!empty($this->messageToDelete)) {
                 $this->pop3->remove($this->messageToDelete);
@@ -78,6 +83,8 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             return [];
         }
 
-        return $this->pop3->getEmails(0, $total);
+        $emails = $this->pop3->getEmails(0, $total);
+        $this->disconnect();
+        return $emails;
     }
 }
