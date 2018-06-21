@@ -42,7 +42,7 @@
         }
     ],
     "require": {
-        "eden/mail": "*",
+        "bladeroot/mail": "*@dev",
         "zbateson/mail-mime-parser": "*",
         "willdurand/email-reply-parser": "^2.7",
         "soundasleep/html2text": "~0.5"
