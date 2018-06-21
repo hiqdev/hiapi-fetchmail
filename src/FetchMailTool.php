@@ -23,7 +23,7 @@ class FetchMailTool extends \hiapi\components\AbstractTool
     protected $pop3;
     protected $parser;
 
-    protected $messageToDelete = [];
+    protected $messagesToDelete = [];
 
     public function __construct($base, $data = [])
     {
@@ -52,8 +52,8 @@ class FetchMailTool extends \hiapi\components\AbstractTool
     public function disconnect()
     {
         if ($this->pop3 !== null) {
-            if (!empty($this->messageToDelete)) {
-                $this->pop3->remove($this->messageToDelete);
+            if (!empty($this->messagesToDelete)) {
+                $this->pop3->remove($this->messagesToDelete);
             }
             $this->pop3->disconnect();
             unset($this->pop3);
@@ -68,11 +68,11 @@ class FetchMailTool extends \hiapi\components\AbstractTool
         }
 
         foreach ($emails as $id => $email) {
-            $remove[] = $id;
+            $removes[] = $id;
             $parsedEmails[] = $this->parser->parseMail($email);
         }
 
-        $this->messageToDelete = $remove;
+        $this->messagesToDelete = $removes;
         return $parsedEmails;
     }
 
