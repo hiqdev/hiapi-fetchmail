@@ -46,14 +46,14 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
     public function __destruct()
     {
-        $this->diconnect();
+        $this->disconnect();
     }
 
     public function disconnect()
     {
         if ($this->pop3 !== null) {
             $this->pop3->disconnect();
-            unset($this->pop3);
+            $this->pop3 === null;
         }
     }
 
@@ -76,11 +76,12 @@ class FetchMailTool extends \hiapi\components\AbstractTool
         }
 
         foreach ($emails as $id => $email) {
-            $removes[] = $id;
             $parsedEmails[] = $this->parser->parseMail($email);
+            $removes[] = $id;
         }
 
         $this->messagesToDelete = $removes;
+        $this->clear();
         return $parsedEmails;
     }
 
@@ -92,7 +93,6 @@ class FetchMailTool extends \hiapi\components\AbstractTool
         }
 
         $emails = $this->pop3->getEmails(0, $total);
-        $this->clear();
         return $emails;
     }
 }
