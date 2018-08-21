@@ -11,7 +11,7 @@
 return [
     'container' => [
         'definitions' => [
-            'fetchmail-tool' => [
+            'fetchmailTool' => [
                 '__class' => \hiapi\fetchmail\FetchMailTool::class,
             ],
         ],
