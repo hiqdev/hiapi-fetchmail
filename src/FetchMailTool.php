@@ -10,7 +10,6 @@
 
 namespace hiapi\fetchmail;
 
-use \hiapi\fetchmail\utils\MailParser;
 use \Ddeboer\Imap\Server;
 
 /**
@@ -20,7 +19,13 @@ use \Ddeboer\Imap\Server;
  */
 class FetchMailTool extends \hiapi\components\AbstractTool
 {
+    const MAILBOX = 'INBOX';
+
+    /* @var object [[\Ddeboer\Imap\Server]] */
     protected $connection;
+
+    /* @var array */
+    protected $messagesToDelete;
 
     public function __construct($base, $data = [])
     {
@@ -32,11 +37,9 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             }
         }
 
-        $server = new Server(
-            $this->data['url']
-        );
+        $server = new Server($this->data['url'], 143, '/novalidate-cert');
 
-        if (emty($server)) {
+        if (empty($server)) {
             throw new \Exception('no connection');
         }
 
@@ -47,15 +50,12 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
     public function __destruct()
     {
-        if ($this->pop3 !== null) {
-            $this->pop3->disconnect();
-            unset($this->pop3);
-        }
+        $this->disconnect();
     }
 
     public function mailsFetch($params = [])
     {
-        $mailbox = $this->connection->getMailbox('INBOX');
+        $mailbox = $this->connection->getMailbox(self::MAILBOX);
         $messages = $mailbox->getMessages();
         if (empty($messages)) {
             return [];
@@ -64,7 +64,8 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             $emails[$message->getNumber()] = [
                 'number' => $message->getNumber(),
                 'message_id' => $message->getId(),
-                'from_email' => $message->getFrom(),
+                'from_email' => $message->getFrom()->getAddress(),
+                'from_name' => $message->getFrom()->getName(),
                 'subject' => $message->getSubject(),
                 'message' => $message->getBodyText() ? : $message->getBodyHtml(),
             ];
@@ -73,7 +74,7 @@ class FetchMailTool extends \hiapi\components\AbstractTool
                 foreach ($message->getAttachments() as $attachment) {
                     if ($attachment->isEmbeddedMessage()) {
                         $embedded = $attachment->getEmbeddedMessage();
-                        $emails[$message->getNumber()]['message' => $message->getBodyText() ? : $message->getBodyHtml();
+                        $emails[$message->getNumber()]['message'] = $message->getBodyText() ? : $message->getBodyHtml();
                         continue;
                     }
 
@@ -90,19 +91,31 @@ class FetchMailTool extends \hiapi\components\AbstractTool
                 }
             }
 
-            $mailbox->getMessage($message->getNumber())->delete();
+            $this->messagesToDelete[] = $message->getNumber();
         }
 
-        return $parsedEmails;
+        var_dump($emails);
+        return $emails;
     }
 
-    protected function mailsGetAll()
+    public function disconnect()
     {
-        $total = $this->pop3->getEmailTotal();
-        if ($total === 0) {
-            return [];
+        if ($this->connection !== null) {
+            $this->connection = null;
         }
+    }
 
-        return $this->pop3->getEmails(0, $total);
+    public function clear()
+    {
+        if ($this->connection !== null) {
+            if (!empty($this->messagesToDelete)) {
+                $mailbox = $this->connection->getMailbox(self::MAILBOX);
+                foreach ($this->messagesToDelete as $id) {
+//                    $mailbox->getMessage($id)->delete();
+                }
+            }
+
+            $this->disconnect();
+        }
     }
 }
