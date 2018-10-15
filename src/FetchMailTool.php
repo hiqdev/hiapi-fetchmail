@@ -82,6 +82,11 @@ class FetchMailTool extends \hiapi\components\AbstractTool
                     }
 
                     file_put_contents($file, $attachment->getDecodedContent());
+
+                    $emails[$message->getNumber()]['attachments'][] = [
+                        'filename' => $attachment->getFilename(),
+                        'filepath' => $file,
+                    ];
                 }
             }
 
