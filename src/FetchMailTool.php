@@ -69,6 +69,18 @@ class FetchMailTool extends \hiapi\components\AbstractTool
                 'message' => $message->getBodyText() ? : $message->getBodyHtml(),
             ];
 
+            if ($message->getAttachments()) {
+                foreach ($message->getAttachments() as $attachment) {
+                    if ($attachment->isEmbeddedMessage()) {
+                        $embedded = $attachment->getEmbeddedMessage();
+                        $emails[$message->getNumber()]['message' => $message->getBodyText() ? : $message->getBodyHtml();
+                        continue;
+                    }
+
+                    file_put_contents(temp_name());
+                }
+            }
+
             $mailbox->getMessage($message->getNumber())->delete();
         }
 
