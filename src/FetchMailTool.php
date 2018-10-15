@@ -77,7 +77,11 @@ class FetchMailTool extends \hiapi\components\AbstractTool
                         continue;
                     }
 
-                    file_put_contents(temp_name());
+                    if (($file = @tempnam(sys_get_temp_dir(), 'thread_attach')) === false) {
+                        continue;
+                    }
+
+                    file_put_contents($file, $attachment->getDecodedContent());
                 }
             }
 
