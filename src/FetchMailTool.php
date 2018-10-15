@@ -51,6 +51,7 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
     public function __destruct()
     {
+        $this->clear();
         $this->disconnect();
     }
 
@@ -101,6 +102,7 @@ class FetchMailTool extends \hiapi\components\AbstractTool
     public function disconnect()
     {
         if ($this->connection !== null) {
+            $this->connection->expunge();
             $this->connection = null;
         }
     }
@@ -111,7 +113,7 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             if (!empty($this->messagesToDelete)) {
                 $mailbox = $this->connection->getMailbox(self::MAILBOX);
                 foreach ($this->messagesToDelete as $id) {
-//                    $mailbox->getMessage($id)->delete();
+                    $mailbox->getMessage($id)->delete();
                 }
             }
 
