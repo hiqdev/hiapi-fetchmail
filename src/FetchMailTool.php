@@ -11,6 +11,7 @@
 namespace hiapi\fetchmail;
 
 use \Ddeboer\Imap\Server;
+use \Html2Text\Html2Text;
 
 /**
  * hiAPI FetchMail Tool.
@@ -67,14 +68,14 @@ class FetchMailTool extends \hiapi\components\AbstractTool
                 'from_email' => $message->getFrom()->getAddress(),
                 'from_name' => $message->getFrom()->getName(),
                 'subject' => $message->getSubject(),
-                'message' => $message->getBodyText() ? : $message->getBodyHtml(),
+                'message' => $message->getBodyText() ? : Html2Text::convert($message->getBodyHtml()),
             ];
 
             if ($message->getAttachments()) {
                 foreach ($message->getAttachments() as $attachment) {
                     if ($attachment->isEmbeddedMessage()) {
                         $embedded = $attachment->getEmbeddedMessage();
-                        $emails[$message->getNumber()]['message'] = $message->getBodyText() ? : $message->getBodyHtml();
+                        $emails[$message->getNumber()]['message'] = $message->getBodyText() ? : Html2Text::convert($message->getBodyHtml());
                         continue;
                     }
 
@@ -94,7 +95,6 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             $this->messagesToDelete[] = $message->getNumber();
         }
 
-        var_dump($emails);
         return $emails;
     }
 
