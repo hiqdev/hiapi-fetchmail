@@ -11,7 +11,7 @@
 namespace hiapi\fetchmail;
 
 use \hiapi\fetchmail\utils\MailParser;
-use \Eden\Mail\Pop3;
+use \Ddeboer\Imap\Server;
 
 /**
  * hiAPI FetchMail Tool.
@@ -20,8 +20,7 @@ use \Eden\Mail\Pop3;
  */
 class FetchMailTool extends \hiapi\components\AbstractTool
 {
-    protected $pop3;
-    protected $parser;
+    protected $connection;
 
     public function __construct($base, $data = [])
     {
@@ -33,13 +32,17 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             }
         }
 
-        $this->pop3 = new Pop3($this->data['url'],
-                $this->data['login'],
-                $this->data['password'],
-                $this->data['port'],
-                $this->data['ssl'],
-                $this->data['tls']);
-        $this->parser = new MailParser();
+        $server = new Server(
+            $this->data['url']
+        );
+
+        if (emty($server)) {
+            throw new \Exception('no connection');
+        }
+
+        $connection = $server->authenticate($this->data['login'], $this->data['password']);
+        $this->connection = $connection;
+
     }
 
     public function __destruct()
@@ -52,19 +55,21 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
     public function mailsFetch($params = [])
     {
-
-        $emails = $this->mailsGetAll();
-        if (empty($emails)) {
-            return true;
+        $mailbox = $this->connection->getMailbox('INBOX');
+        $messages = $mailbox->getMessages();
+        if (empty($messages)) {
+            return [];
         }
+        foreach ($messages as $message) {
+            $emails[$message->getNumber()] = [
+                'number' => $message->getNumber(),
+                'message_id' => $message->getId(),
+                'from_email' => $message->getFrom(),
+                'subject' => $message->getSubject(),
+                'message' => $message->getBodyText() ? : $message->getBodyHtml(),
+            ];
 
-        if ($this->data['internal_parser']) {
-            return $emails;
-        }
-
-        foreach ($emails as $id => $email) {
-            // $this->pop3->remove($id + 1);
-            $parsedEmails[] = $this->parser->parseMail($email['raw']);
+            $mailbox->getMessage($message->getNumber())->delete();
         }
 
         return $parsedEmails;
