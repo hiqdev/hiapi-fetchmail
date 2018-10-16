@@ -10,8 +10,8 @@
 
 namespace hiapi\fetchmail;
 
-use \hiapi\fetchmail\utils\MailParser;
-use \Eden\Mail\Pop3;
+use \Ddeboer\Imap\Server;
+use \Html2Text\Html2Text;
 
 /**
  * hiAPI FetchMail Tool.
@@ -20,8 +20,13 @@ use \Eden\Mail\Pop3;
  */
 class FetchMailTool extends \hiapi\components\AbstractTool
 {
-    protected $pop3;
-    protected $parser;
+    const MAILBOX = 'INBOX';
+
+    /* @var object [[\Ddeboer\Imap\Server]] */
+    protected $connection;
+
+    /* @var array */
+    protected $messagesToDelete;
 
     public function __construct($base, $data = [])
     {
@@ -33,50 +38,86 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             }
         }
 
-        $this->pop3 = new Pop3($this->data['url'],
-                $this->data['login'],
-                $this->data['password'],
-                $this->data['port'],
-                $this->data['ssl'],
-                $this->data['tls']);
-        $this->parser = new MailParser();
+        $server = new Server($this->data['url'], 143, '/novalidate-cert');
+
+        if (empty($server)) {
+            throw new \Exception('no connection');
+        }
+
+        $connection = $server->authenticate($this->data['login'], $this->data['password']);
+        $this->connection = $connection;
+
     }
 
     public function __destruct()
     {
-        if ($this->pop3 !== null) {
-            $this->pop3->disconnect();
-            unset($this->pop3);
-        }
+        $this->clear();
+        $this->disconnect();
     }
 
     public function mailsFetch($params = [])
     {
-
-        $emails = $this->mailsGetAll();
-        if (empty($emails)) {
-            return true;
-        }
-
-        if ($this->data['internal_parser']) {
-            return $emails;
-        }
-
-        foreach ($emails as $id => $email) {
-            // $this->pop3->remove($id + 1);
-            $parsedEmails[] = $this->parser->parseMail($email['raw']);
-        }
-
-        return $parsedEmails;
-    }
-
-    protected function mailsGetAll()
-    {
-        $total = $this->pop3->getEmailTotal();
-        if ($total === 0) {
+        $mailbox = $this->connection->getMailbox(self::MAILBOX);
+        $messages = $mailbox->getMessages();
+        if (empty($messages)) {
             return [];
         }
+        foreach ($messages as $message) {
+            $emails[$message->getNumber()] = [
+                'number' => $message->getNumber(),
+                'message_id' => $message->getId(),
+                'from_email' => $message->getFrom()->getAddress(),
+                'from_name' => $message->getFrom()->getName(),
+                'subject' => $message->getSubject(),
+                'message' => $message->getBodyText() ? : Html2Text::convert($message->getBodyHtml()),
+            ];
 
-        return $this->pop3->getEmails(0, $total);
+            if ($message->getAttachments()) {
+                foreach ($message->getAttachments() as $attachment) {
+                    if ($attachment->isEmbeddedMessage()) {
+                        $embedded = $attachment->getEmbeddedMessage();
+                        $emails[$message->getNumber()]['message'] = $message->getBodyText() ? : Html2Text::convert($message->getBodyHtml());
+                        continue;
+                    }
+
+                    if (($file = @tempnam(sys_get_temp_dir(), 'thread_attach')) === false) {
+                        continue;
+                    }
+
+                    file_put_contents($file, $attachment->getDecodedContent());
+
+                    $emails[$message->getNumber()]['attachments'][] = [
+                        'filename' => $attachment->getFilename(),
+                        'filepath' => $file,
+                    ];
+                }
+            }
+
+            $this->messagesToDelete[] = $message->getNumber();
+        }
+
+        return $emails;
+    }
+
+    public function disconnect()
+    {
+        if ($this->connection !== null) {
+            $this->connection->expunge();
+            $this->connection = null;
+        }
+    }
+
+    public function clear()
+    {
+        if ($this->connection !== null) {
+            if (!empty($this->messagesToDelete)) {
+                $mailbox = $this->connection->getMailbox(self::MAILBOX);
+                foreach ($this->messagesToDelete as $id) {
+                    $mailbox->getMessage($id)->delete();
+                }
+            }
+
+            $this->disconnect();
+        }
     }
 }
