@@ -9,11 +9,7 @@
  */
 
 return [
-    'container' => [
-        'definitions' => [
-            'fetchmailTool' => [
-                '__class' => \hiapi\fetchmail\FetchMailTool::class,
-            ],
-        ],
+    'fetchmailTool' => [
+        '__class' => \hiapi\fetchmail\FetchMailTool::class,
     ],
 ];
