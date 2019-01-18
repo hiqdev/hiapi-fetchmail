@@ -8,12 +8,10 @@
  * @copyright Copyright (c) 2017, HiQDev (http://hiqdev.com/)
  */
 
-return [
-    'container' => [
-        'definitions' => [
-            'fetchmailTool' => [
-                '__class' => \hiapi\fetchmail\FetchMailTool::class,
-            ],
-        ],
+$definitions = [
+    'fetchmailTool' => [
+        '__class' => \hiapi\fetchmail\FetchMailTool::class,
     ],
 ];
+
+return class_exists('Yii') ? ['container' => ['definitions' => $definitions]] : $definitions;
