@@ -63,6 +63,7 @@ class FetchMailTool extends \hiapi\components\AbstractTool
         if (empty($messages)) {
             return [];
         }
+        $emails = [];
         foreach ($messages as $message) {
             $emails[$message->getNumber()] = [
                 'number' => $message->getNumber(),
