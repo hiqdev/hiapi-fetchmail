@@ -39,7 +39,24 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             }
         }
 
-        $server = new Server($this->data['url'], 143, '/novalidate-cert');
+        if (isset($data['data'])) {
+            if (is_array($data['data'])) {
+                $config = $data['data'];
+            }
+
+            if (is_string($data['data'])) {
+                $config = json_decode($data['data'], true, 512);
+            }
+        }
+
+        $server = new Server(
+            $this->data['url'],
+            $config['port'] ?? 993,
+            $config['flags'] ?? '/imap/ssl/validate-cert',
+            $config['parameters'] ?? [],
+            $config['options'] ?? 0,
+            $config['retries'] ?? 1
+        );
 
         if (empty($server)) {
             throw new \Exception('no connection');
