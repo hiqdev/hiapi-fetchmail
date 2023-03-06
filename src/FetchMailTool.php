@@ -89,7 +89,7 @@ class FetchMailTool extends \hiapi\components\AbstractTool
                 'from_name' => $message->getFrom()->getName(),
                 'subject' => $message->getSubject(),
                 'message' => EmailReplyParser::parseReply($message->getBodyText() ? : Html2Text::convert($message->getBodyHtml())),
-                'in_reply_to' => trim($message->getHeaders()->get('in_reply_to'), '<>'),
+                'in_reply_to' => trim($message->getHeaders()->get('in_reply_to') ?: '', '<>'),
             ];
 
             if ($message->getAttachments()) {
