@@ -82,11 +82,12 @@ class FetchMailTool extends \hiapi\components\AbstractTool
         }
         $emails = [];
         foreach ($messages as $message) {
+            $from = $message->getFrom();
             $emails[$message->getNumber()] = [
                 'number' => $message->getNumber(),
                 'message_id' => $message->getId(),
-                'from_email' => $message->getFrom()?->getAddress(),
-                'from_name' => $message->getFrom()?->getName(),
+                'from_email' => $from !== null ? $from->getAddress() : null,
+                'from_name' => $from !== null ? $from->getName() : null,
                 'subject' => $message->getSubject(),
                 'message' => EmailReplyParser::parseReply($message->getBodyText() ? : Html2Text::convert($message->getBodyHtml())),
                 'in_reply_to' => trim($message->getHeaders()->get('in_reply_to') ?: '', '<>'),
