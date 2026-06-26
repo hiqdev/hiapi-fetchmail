@@ -95,8 +95,14 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             if ($message->getAttachments()) {
                 foreach ($message->getAttachments() as $attachment) {
                     if ($attachment->isEmbeddedMessage()) {
-                        $embedded = $attachment->getEmbeddedMessage();
-                        $emails[$message->getNumber()]['message'] = EmailReplyParser::parseReply($message->getBodyText() ? : Html2Text::convert($message->getBodyHtml()));
+                        try {
+                            $embedded = $attachment->getEmbeddedMessage();
+                            $emails[$message->getNumber()]['message'] = EmailReplyParser::parseReply(
+                                $embedded->getBodyText() ?: Html2Text::convert($embedded->getBodyHtml())
+                            );
+                        } catch (\Throwable $e) {
+                            // malformed embedded message structure from IMAP server, keep outer message body
+                        }
                         continue;
                     }
 
