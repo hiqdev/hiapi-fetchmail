@@ -15,7 +15,11 @@ use \Html2Text\Html2Text;
 use \EmailReplyParser\EmailReplyParser;
 
 /**
- * hiAPI FetchMail Tool.
+ * Fetches incoming emails from an IMAP mailbox and returns them as an array.
+ *
+ * Used by the support ticket system to pull emails into threads.
+ * Processed messages are deleted from the mailbox after fetching
+ * so the same email is never imported twice.
  *
  * @author Andrii Vasyliev <sol@hiqdev.com>
  */
@@ -35,10 +39,11 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
         foreach (['url','login', 'password'] as $argument) {
             if (empty($this->data[$argument])) {
-                throw new Exception(ucfirst($argument) . ' could not be empty');
+                throw new \InvalidArgumentException(ucfirst($argument) . ' could not be empty');
             }
         }
 
+        $config = [];
         if (isset($data['data'])) {
             if (is_array($data['data'])) {
                 $config = $data['data'];
@@ -58,10 +63,6 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             $config['retries'] ?? 1
         );
 
-        if (empty($server)) {
-            throw new \Exception('no connection');
-        }
-
         $connection = $server->authenticate($this->data['login'], $this->data['password']);
         $this->connection = $connection;
 
@@ -70,7 +71,6 @@ class FetchMailTool extends \hiapi\components\AbstractTool
     public function __destruct()
     {
         $this->clear();
-        $this->disconnect();
     }
 
     public function mailsFetch($params = [])
@@ -82,11 +82,12 @@ class FetchMailTool extends \hiapi\components\AbstractTool
         }
         $emails = [];
         foreach ($messages as $message) {
+            $from = $message->getFrom();
             $emails[$message->getNumber()] = [
                 'number' => $message->getNumber(),
                 'message_id' => $message->getId(),
-                'from_email' => $message->getFrom()->getAddress(),
-                'from_name' => $message->getFrom()->getName(),
+                'from_email' => $from !== null ? $from->getAddress() : null,
+                'from_name' => $from !== null ? $from->getName() : null,
                 'subject' => $message->getSubject(),
                 'message' => EmailReplyParser::parseReply($message->getBodyText() ? : Html2Text::convert($message->getBodyHtml())),
                 'in_reply_to' => trim($message->getHeaders()->get('in_reply_to') ?: '', '<>'),
@@ -95,8 +96,14 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             if ($message->getAttachments()) {
                 foreach ($message->getAttachments() as $attachment) {
                     if ($attachment->isEmbeddedMessage()) {
-                        $embedded = $attachment->getEmbeddedMessage();
-                        $emails[$message->getNumber()]['message'] = EmailReplyParser::parseReply($message->getBodyText() ? : Html2Text::convert($message->getBodyHtml()));
+                        try {
+                            $embedded = $attachment->getEmbeddedMessage();
+                            $emails[$message->getNumber()]['message'] = EmailReplyParser::parseReply(
+                                $embedded->getBodyText() ?: Html2Text::convert($embedded->getBodyHtml())
+                            );
+                        } catch (\Throwable $e) {
+                            // malformed embedded message structure from IMAP server, keep outer message body
+                        }
                         continue;
                     }
 
