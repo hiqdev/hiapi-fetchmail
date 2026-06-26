@@ -42,6 +42,7 @@
         }
     ],
     "require": {
+        "php": ">=8.0",
         "eden/mail": "*",
         "zbateson/mail-mime-parser": "*",
         "ddeboer/imap": "^1.5",

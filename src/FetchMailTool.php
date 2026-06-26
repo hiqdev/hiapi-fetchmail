@@ -15,7 +15,11 @@ use \Html2Text\Html2Text;
 use \EmailReplyParser\EmailReplyParser;
 
 /**
- * hiAPI FetchMail Tool.
+ * Fetches incoming emails from an IMAP mailbox and returns them as an array.
+ *
+ * Used by the support ticket system to pull emails into threads.
+ * Processed messages are deleted from the mailbox after fetching
+ * so the same email is never imported twice.
  *
  * @author Andrii Vasyliev <sol@hiqdev.com>
  */
