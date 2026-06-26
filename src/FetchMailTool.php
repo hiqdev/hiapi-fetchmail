@@ -35,10 +35,11 @@ class FetchMailTool extends \hiapi\components\AbstractTool
 
         foreach (['url','login', 'password'] as $argument) {
             if (empty($this->data[$argument])) {
-                throw new Exception(ucfirst($argument) . ' could not be empty');
+                throw new \InvalidArgumentException(ucfirst($argument) . ' could not be empty');
             }
         }
 
+        $config = [];
         if (isset($data['data'])) {
             if (is_array($data['data'])) {
                 $config = $data['data'];
@@ -58,10 +59,6 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             $config['retries'] ?? 1
         );
 
-        if (empty($server)) {
-            throw new \Exception('no connection');
-        }
-
         $connection = $server->authenticate($this->data['login'], $this->data['password']);
         $this->connection = $connection;
 
@@ -70,7 +67,6 @@ class FetchMailTool extends \hiapi\components\AbstractTool
     public function __destruct()
     {
         $this->clear();
-        $this->disconnect();
     }
 
     public function mailsFetch($params = [])
@@ -85,8 +81,8 @@ class FetchMailTool extends \hiapi\components\AbstractTool
             $emails[$message->getNumber()] = [
                 'number' => $message->getNumber(),
                 'message_id' => $message->getId(),
-                'from_email' => $message->getFrom()->getAddress(),
-                'from_name' => $message->getFrom()->getName(),
+                'from_email' => $message->getFrom()?->getAddress(),
+                'from_name' => $message->getFrom()?->getName(),
                 'subject' => $message->getSubject(),
                 'message' => EmailReplyParser::parseReply($message->getBodyText() ? : Html2Text::convert($message->getBodyHtml())),
                 'in_reply_to' => trim($message->getHeaders()->get('in_reply_to') ?: '', '<>'),
